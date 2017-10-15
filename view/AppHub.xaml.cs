@@ -30,8 +30,6 @@ namespace WIMEX.View
         public AppHub()
         {
             this.InitializeComponent();
-
-            prgStatus.IsActive = true;
         }
 
         public async static void GetMessages(string number)

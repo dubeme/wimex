@@ -1,5 +1,4 @@
-﻿using WIMEX.Model;
-using GalaSoft.MvvmLight;
+﻿using GalaSoft.MvvmLight;
 using GalaSoft.MvvmLight.Command;
 using Newtonsoft.Json;
 using System;
@@ -11,18 +10,16 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using WIMEX.Model;
 using Windows.ApplicationModel.Chat;
 using Windows.ApplicationModel.Contacts;
 using Windows.ApplicationModel.Core;
-using Windows.ApplicationModel.Resources;
 using Windows.Storage;
 
 namespace WIMEX.ViewModel
 {
     public class AppHubViewModel : ViewModelBase
     {
-        private static ResourceLoader ResourceLoader = new ResourceLoader();
-
         private int _CurrentConverstaionIndex;
 
         public int CurrentConverstaionIndex
@@ -71,17 +68,19 @@ namespace WIMEX.ViewModel
             }
         }
 
-        private bool _BackupInProgress;
+        private bool _ExportInProgress;
 
-        public bool BackupInProgress
+        public bool ExportInProgress
         {
-            get { return _BackupInProgress; }
+            get { return _ExportInProgress; }
             set
             {
-                _BackupInProgress = value;
-                RaisePropertyChanged(nameof(BackupInProgress));
+                _ExportInProgress = value;
+                RaisePropertyChanged(nameof(ExportInProgress));
             }
         }
+
+        public StorageFolder ExportFolder { get; set; }
 
         private ObservableCollection<ConversationViewModel> _Conversations;
 
@@ -95,8 +94,9 @@ namespace WIMEX.ViewModel
             }
         }
 
-        public ICommand StartBackupCommand { get; set; }
-        public ICommand CancelBackupCommand { get; set; }
+        public ICommand PickExportFolderCommand { get; set; }
+        public ICommand StartExportingCommand { get; set; }
+        public ICommand CancelExportingCommand { get; set; }
 
         public AppHubViewModel()
         {
@@ -105,28 +105,36 @@ namespace WIMEX.ViewModel
 
         private void Init()
         {
-            var loader = new ResourceLoader();
-            var str = loader.GetString("discovering");
-
             var tokenSource = new CancellationTokenSource();
-            StartBackupCommand = new RelayCommand(async () =>
+
+            PickExportFolderCommand = new RelayCommand(async () =>
+            {
+                var folderPicker = new Windows.Storage.Pickers.FolderPicker();
+                ExportFolder = await folderPicker.PickSingleFolderAsync();
+            });
+
+            StartExportingCommand = new RelayCommand(async () =>
             {
                 await GetMessages(tokenSource.Token);
             });
-            CancelBackupCommand = new RelayCommand(() => { });
+
+            CancelExportingCommand = new RelayCommand(() =>
+            {
+                tokenSource.Cancel();
+            });
         }
 
         public async Task GetMessages(CancellationToken cancellationToken)
         {
             if (cancellationToken.IsCancellationRequested == false)
             {
-                var store = (await ChatMessageManager.RequestStoreAsync());
-                var convoReader = store.GetConversationReader();
-                var chatConversations = (await convoReader.ReadBatchAsync(int.MaxValue));
-
                 try
                 {
-                    this.BackupInProgress = true;
+                    this.ExportInProgress = true;
+
+                    var store = (await ChatMessageManager.RequestStoreAsync());
+                    var convoReader = store.GetConversationReader();
+                    var chatConversations = (await convoReader.ReadBatchAsync(int.MaxValue));
 
                     this.CurrentConverstaionIndex = 0;
                     this.CurrentMessageIndex = 0;
@@ -137,30 +145,7 @@ namespace WIMEX.ViewModel
                     var cBatch = (await contactStore.FindContactsAsync()).ToList();
                     var cJSON = await Task.Run(() => JsonConvert.SerializeObject(cBatch), cancellationToken);
 
-                    Conversations = new ObservableCollection<ConversationViewModel>(await Task.WhenAll(
-                        chatConversations
-                        .Select(convo => Task.Run(async () =>
-                       {
-                           var allParticipants = await Task.WhenAll(convo.Participants.Select(part =>
-                               Task.Run(async () =>
-                               {
-                                   try
-                                   {
-                                       return (await contactStore.FindContactsAsync(part)).First().FullName;
-                                   }
-                                   catch (Exception)
-                                   {
-                                   }
-
-                                   return part;
-                               })));
-
-                           return new ConversationViewModel
-                           {
-                               Conversation = convo,
-                               AllParticipants = string.Join(", ", allParticipants)
-                           };
-                       }))));
+                    Conversations = await ChatConversationsToConversationViewModelsAsync(chatConversations, cancellationToken);
 
                     //var conversations = await Task.WhenAll(chatConversations.Select((convo) => Task.Run(
                     //    async () =>
@@ -193,18 +178,44 @@ namespace WIMEX.ViewModel
                 }
                 finally
                 {
-                    this.BackupInProgress = false;
+                    this.ExportInProgress = false;
                 }
             }
         }
 
+        private static async Task<ObservableCollection<ConversationViewModel>> ChatConversationsToConversationViewModelsAsync(IReadOnlyList<ChatConversation> chatConversations, CancellationToken cancellationToken)
+        {
+            var contactStore = await ContactManager.RequestStoreAsync();
+
+            return new ObservableCollection<ConversationViewModel>(await Task.WhenAll(
+                chatConversations
+                .Select(convo => Task.Run(async () =>
+                {
+                    var allParticipants = await Task.WhenAll(convo.Participants.Select(participant => Task.Run(async () =>
+                    {
+                        try
+                        {
+                            return (await contactStore.FindContactsAsync(participant)).First().FullName;
+                        }
+                        catch (Exception)
+                        {
+                        }
+
+                        return participant;
+                    }, cancellationToken)));
+
+                    return new ConversationViewModel
+                    {
+                        Conversation = convo,
+                        AllParticipants = string.Join(", ", allParticipants)
+                    };
+                }))));
+        }
+
         private async Task WriteBackup(IEnumerable<Conversation> conversations, CancellationToken cancellationToken)
         {
-            var folderPicker = new Windows.Storage.Pickers.FolderPicker();
-            var pickedFolder = await folderPicker.PickSingleFolderAsync();
-
             var backupFolderName = $"backup-{DateTime.Now:yyyyMMddHHmmssfff}";
-            var backupFolder = await pickedFolder.CreateFolderAsync(backupFolderName);
+            var backupFolder = await ExportFolder.CreateFolderAsync(backupFolderName);
             var attachmentFolder = await backupFolder.CreateFolderAsync("attachments");
 
             await FileIO.WriteTextAsync(
