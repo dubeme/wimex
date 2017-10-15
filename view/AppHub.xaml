@@ -1,0 +1,106 @@
+﻿<Page x:Class="WIMEX.View.AppHub"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:Converter="using:WIMEX.Converter"
+      xmlns:ViewModel="using:WIMEX.ViewModel"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:local="using:WIMEX.View"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:fa="using:FontAwesome.UWP"
+      mc:Ignorable="d">
+
+    <Page.Resources>
+        <Converter:NegateBooleanToVisibilityConverter x:Key="NegateBooleanToVisibilityConverter" />
+        <Converter:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </Page.Resources>
+
+    <Page.DataContext>
+        <ViewModel:AppHubViewModel />
+    </Page.DataContext>
+
+    <Page.BottomAppBar>
+        <CommandBar>
+            <AppBarButton HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          Command="{Binding StartBackupCommand}"
+                          Icon="Add"
+                          Label="New Backup"
+                          Visibility="{Binding BackupInProgress,
+                                               Converter={StaticResource NegateBooleanToVisibilityConverter}}"
+                          d:LayoutOverrides="Height" />
+
+            <AppBarButton HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          Command="{Binding CancelBackupCommand}"
+                          Icon="Cancel"
+                          Label="Cancel Backup"
+                          Visibility="{Binding BackupInProgress,
+                                               Converter={StaticResource BooleanToVisibilityConverter}}"
+                          d:LayoutOverrides="Height" />
+        </CommandBar>
+    </Page.BottomAppBar>
+
+    <ScrollViewer>
+        <ContentPresenter>
+            <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <ListView ItemsSource="{Binding Conversations}">
+                    <ListView.DataContext>
+                        <ViewModel:AppHubViewModel/>
+                    </ListView.DataContext>
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <CheckBox Content="{Binding AllParticipants}" IsChecked="{Binding IsChecked}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+
+                <StackPanel x:Name="prgBar"
+                    Margin="0"
+                    Grid.Row="1"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Orientation="Vertical">
+
+                    <!--<fa:FontAwesome Icon="Flag" FontSize="90" HorizontalAlignment="Center" />-->
+
+                    <TextBlock>
+                <Run Text="{Binding CurrentConverstaionIndex}" />
+                <Run Text=" /" />
+                <Run Text="{Binding NumberOfConversations}" />
+                <Run Text=" Conversations" />
+                    </TextBlock>
+
+                    <TextBlock>
+                <Run Text="{Binding CurrentMessageIndex}" />
+                <Run Text=" /" />
+                <Run Text="{Binding NumberOfMessages}" />
+                <Run Text=" Conversations" />
+                    </TextBlock>
+
+                    <TextBlock x:Name="tblkStatus"
+                       Margin="0"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       FontSize="18.667"
+                       Text=""
+                       TextWrapping="Wrap" />
+
+                    <ProgressRing x:Name="prgStatus"
+                          MinWidth="64"
+                          MinHeight="64"
+                          Margin="0,32"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center" />
+                </StackPanel>
+            </Grid>
+        </ContentPresenter>
+    </ScrollViewer>
+</Page>
