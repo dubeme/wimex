@@ -1,8 +1,8 @@
 ﻿<Application
-    x:Class="wimex.App"
+    x:Class="WIMEX.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:wimex"
+    xmlns:local="using:WIMEX"
     RequestedTheme="Light">
 
 </Application>
