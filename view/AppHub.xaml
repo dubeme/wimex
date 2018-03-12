@@ -11,8 +11,9 @@
     mc:Ignorable="d">
 
     <Page.Resources>
-        <Converter:NegateBooleanToVisibilityConverter x:Key="NegateBooleanToVisibilityConverter" />
         <Converter:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <Converter:NegateBooleanConverter x:Key="NegateBooleanConverter" />
+        <Converter:NegateBooleanToVisibilityConverter x:Key="NegateBooleanToVisibilityConverter" />
     </Page.Resources>
 
     <Page.DataContext>
@@ -45,43 +46,54 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="auto" />
             <RowDefinition Height="auto" />
+            <RowDefinition Height="auto" />
         </Grid.RowDefinitions>
 
-        <StackPanel
-            Padding="4"
-            Orientation="Horizontal"
-            Visibility="{Binding ExportInProgress, Converter={StaticResource BooleanToVisibilityConverter}}">
+        <StackPanel Grid.Row="0" Margin="8">
+            <TextBlock
+                Margin="8"
+                FontStyle="Italic"
+                Text="To avoid overflowing the memory(RAM), pick the location to store the exported messages"
+                TextWrapping="WrapWholeWords" />
 
-            <Grid>
-                <TextBlock
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    Text="1" />
-                <ProgressRing
-                    Grid.Row="0"
-                    MinWidth="32"
-                    MinHeight="32"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    IsActive="{Binding ExportInProgress}" />
-            </Grid>
-            <TextBlock Text="Discovering conversations..." />
+            <Button
+                Margin="8"
+                Content="Pick Export Location"
+                Command="{Binding PickExportFolderCommand}"
+                IsEnabled="{Binding ExportInProgress, Converter={StaticResource NegateBooleanConverter}}" />
         </StackPanel>
 
-        <ListView Grid.Row="1" ItemsSource="{Binding Conversations}">
+        <ListView Grid.Row="1" ItemsSource="{Binding ExportSteps}" >
             <ListView.ItemTemplate>
                 <DataTemplate>
-                    <CheckBox IsChecked="{Binding IsChecked}">
-                        <CheckBox.ContentTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding AllParticipants}" TextWrapping="WrapWholeWords" />
-                            </DataTemplate>
-                        </CheckBox.ContentTemplate>
-                    </CheckBox>
+                    <StackPanel
+                        Grid.Row="0"
+                        Padding="4"
+                        Orientation="Horizontal">
+                        <Grid>
+                            <fa:FontAwesome
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Bottom"
+                                Icon="Check"
+                                Visibility="{Binding InProgress, Converter={StaticResource NegateBooleanToVisibilityConverter}}" />
+
+                            <ProgressRing
+                                Grid.Row="0"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                IsActive="{Binding InProgress}" />
+                        </Grid>
+
+                        <TextBlock
+                            Margin="8,0,0,0"
+                            VerticalAlignment="Bottom"
+                            Text="{Binding Label}"
+                            TextWrapping="WrapWholeWords"/>
+                    </StackPanel>
                 </DataTemplate>
             </ListView.ItemTemplate>
-        </ListView>
 
+        </ListView>
     </Grid>
 
 </Page>

@@ -1,8 +1,10 @@
 ﻿using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
 using Windows.ApplicationModel.Chat;
+using System;
 
 /// <summary>
 ///
@@ -19,9 +21,7 @@ namespace WIMEX.Model
         {
             get
             {
-                return Messages
-                    .Where(msg => msg.Attachments.Any())
-                    .SelectMany(conv => conv.Attachments);
+                return Messages.SelectMany(message => message.Attachments);
             }
         }
 
@@ -67,7 +67,17 @@ namespace WIMEX.Model
         /// Gets or sets the messages of this Conversation.
         /// </summary>
         [JsonProperty(PropertyName = "f")]
+        [IgnoreDataMember]
         public IEnumerable<Message> Messages { get; set; }
+        
+        /// <summary>
+        /// Gets or Sets the flattened messages in this conversation
+        /// </summary>
+        [IgnoreDataMember]
+        public IEnumerable<FlattenedMessage> FlattenedMessages
+        {
+            get => this.Messages.Select(msg => FlattenMessage(this, msg));
+        }
 
         /// <summary>
         /// Gets or sets the ID of the most recent message in the conversation.
@@ -114,6 +124,52 @@ namespace WIMEX.Model
                 Participants = conversation.Participants.Select(p => p),
                 Subject = conversation.Subject,
                 ThreadingInfo = conversation.ThreadingInfo
+            };
+        }
+
+
+        private FlattenedMessage FlattenMessage(Conversation conversation, Message message)
+        {
+            return new FlattenedMessage
+            {
+                // Conversation
+                ConversationId = conversation.Id,
+                ConversationSubject = conversation.Subject,
+                ConversationThreadingInfo = conversation.ThreadingInfo,
+                HasUnreadMessages = conversation.HasUnreadMessages,
+                IsConversationMuted = conversation.IsConversationMuted,
+                ItemKind = conversation.ItemKind,
+                MostRecentMessageId = conversation.MostRecentMessageId,
+                Participants = conversation.Participants,
+                CanModifyParticipants = conversation.CanModifyParticipants,
+                // Message
+                Body = message.BodyUTF8,
+                EstimatedDownloadSize = message.EstimatedDownloadSize,
+                From = message.From,
+                IsAutoReply = message.IsAutoReply,
+                IsForwardingDisabled = message.IsForwardingDisabled,
+                IsIncoming = message.IsIncoming,
+                IsRead = message.IsRead,
+                IsReceivedDuringQuietHours = message.IsReceivedDuringQuietHours,
+                IsReplyDisabled = message.IsReplyDisabled,
+                IsSeen = message.IsSeen,
+                IsSimMessage = message.IsSimMessage,
+                LocalTimestamp = message.LocalTimestamp,
+                MessageAttachments = message.Attachments,
+                MessageId = message.Id,
+                MessageKind = message.MessageKind,
+                MessageOperatorKind = message.MessageOperatorKind,
+                MessageSubject = message.Subject,
+                MessageThreadingInfo = message.ThreadingInfo,
+                NetworkTimestamp = message.NetworkTimestamp,
+                Recipients = message.Recipients,
+                RecipientsDeliveryInfos = message.RecipientsDeliveryInfos,
+                RecipientSendStatuses = message.RecipientSendStatuses,
+                RemoteId = message.RemoteId,
+                ShouldSuppressNotification = message.ShouldSuppressNotification,
+                Status = message.Status,
+                TransportFriendlyName = message.TransportFriendlyName,
+                TransportId = message.TransportId,
             };
         }
     }

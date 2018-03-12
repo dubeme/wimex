@@ -1,6 +1,8 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.Chat;
 
@@ -17,16 +19,9 @@ namespace WIMEX.Model
         private string _Base64EncodedThumbnail;
 
         /// <summary>
-        /// Gets or sets the base64 encoded data unique identifier of this Attachment.
+        /// Get's the ID for this attachment
         /// </summary>
-        [JsonProperty(PropertyName = "a")]
-        public Guid DataGUID { get; set; }
-
-        /// <summary>
-        /// Gets or sets the base64 encoded thumbnail unique identifier of this Attachment.
-        /// </summary>
-        [JsonProperty(PropertyName = "b")]
-        public Guid ThumbnailGUID { get; set; }
+        public string Id { get; private set; }
 
         /// <summary>
         /// Gets the guessed extension, from the Mime type.
@@ -80,16 +75,15 @@ namespace WIMEX.Model
         /// Initializes a new instance of the <see cref="Attachment"/> class.
         /// </summary>
         /// <param name="attachment">The attachment.</param>
-        public Attachment(ChatMessageAttachment attachment)
+        /// <param name="message">The message the attachment belongs to.</param>
+        public Attachment(ChatMessageAttachment attachment, Message message)
         {
             GroupId = attachment.GroupId;
             MimeType = attachment.MimeType;
             OriginalFileName = attachment.OriginalFileName;
             Text = attachment.Text;
             TransferProgress = attachment.TransferProgress;
-
-            DataGUID = Guid.NewGuid();
-            ThumbnailGUID = Guid.Empty;
+            Id = $"{message.Id}-{attachment.GroupId}-{attachment.MimeType}-{attachment.OriginalFileName}";
 
             _Attachment = attachment;
         }
@@ -98,10 +92,27 @@ namespace WIMEX.Model
         /// Parse a <see cref="ChatMessageAttachment" /> into <see cref="Attachment" />.
         /// </summary>
         /// <param name="attachment">The attachment.</param>
+        /// <param name="message">The message the attachment belongs to.</param>
         /// <returns></returns>
-        public static Attachment Parse(ChatMessageAttachment attachment)
+        public static Attachment Parse(ChatMessageAttachment attachment, Message message)
         {
-            return new Attachment(attachment);
+            return new Attachment(attachment, message);
+        }
+
+        private static string HashString(string str)
+        {
+            var uniqueNameHash = SHA256
+                .Create()
+                .ComputeHash(Encoding.UTF8.GetBytes(str));
+
+            var uniqueNameHashString = new StringBuilder();
+
+            foreach (byte b in uniqueNameHash)
+            {
+                uniqueNameHashString.Append(b);
+            }
+
+            return uniqueNameHashString.ToString();
         }
 
         public async static Task<string> EncodeDataToBase64Async(Attachment attachment)

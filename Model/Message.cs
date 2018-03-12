@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Windows.ApplicationModel.Chat;
 
 namespace WIMEX.Model
@@ -13,7 +14,8 @@ namespace WIMEX.Model
     {
         private const int THRESHOLD_SECONDS = 5;
 
-        private IList<ChatMessageAttachment> _Attachments;
+        private IList<ChatMessageAttachment> _ChatMessageAttachments;
+        private IEnumerable<Attachment> _Attachments = Enumerable.Empty<Attachment>();
 
         /// <summary>
         /// Gets the attachments of this Message.
@@ -23,9 +25,11 @@ namespace WIMEX.Model
         {
             get
             {
-                if (!Equals(_Attachments, null))
+                if (!Equals(_ChatMessageAttachments, null))
                 {
-                    return _Attachments.Select(Attachment.Parse);
+
+                    // Attachments = message.Attachments?.Select(Attachment.Parse).ToList() ?? Enumerable.Empty<Attachment>(),
+                    return _ChatMessageAttachments.Select(attachment => Attachment.Parse(attachment, this));
                 }
 
                 return Enumerable.Empty<Attachment>();
@@ -37,6 +41,8 @@ namespace WIMEX.Model
         /// </summary>
         [JsonProperty(PropertyName = "b")]
         public string Body { get; set; }
+
+        public string BodyUTF8 => Encoding.UTF8.GetString(Encoding.UTF8.GetBytes(Body));
 
         /// <summary>
         /// Gets or sets the size of the estimated download.
@@ -199,7 +205,7 @@ namespace WIMEX.Model
         {
             return new Message
             {
-                _Attachments = message.Attachments,
+                _ChatMessageAttachments = message.Attachments,
                 Body = message.Body,
                 EstimatedDownloadSize = message.EstimatedDownloadSize,
                 From = message.From,

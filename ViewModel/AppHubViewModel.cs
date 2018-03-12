@@ -94,6 +94,18 @@ namespace WIMEX.ViewModel
             }
         }
 
+        private ObservableCollection<ExportStepViewModel> _ExportSteps;
+
+        public ObservableCollection<ExportStepViewModel> ExportSteps
+        {
+            get { return _ExportSteps; }
+            set
+            {
+                _ExportSteps = value;
+                RaisePropertyChanged(nameof(ExportSteps));
+            }
+        }
+
         public ICommand PickExportFolderCommand { get; set; }
         public ICommand StartExportingCommand { get; set; }
         public ICommand CancelExportingCommand { get; set; }
@@ -145,25 +157,34 @@ namespace WIMEX.ViewModel
                     var cBatch = (await contactStore.FindContactsAsync()).ToList();
                     var cJSON = await Task.Run(() => JsonConvert.SerializeObject(cBatch), cancellationToken);
 
-                    Conversations = await ChatConversationsToConversationViewModelsAsync(chatConversations, cancellationToken);
+                    //Conversations = await ChatConversationsToConversationViewModelsAsync(chatConversations, cancellationToken);
 
-                    //var conversations = await Task.WhenAll(chatConversations.Select((convo) => Task.Run(
-                    //    async () =>
-                    //    {
-                    //        RunOnUIThread(() => this.CurrentConverstaionIndex++);
+                    // FontAwesome.UWP.FontAwesomeIcon.Check
 
-                    //        var messages = await convo.GetMessageReader().ReadBatchAsync(int.MaxValue);
+                    var conversations = await Task.WhenAll(chatConversations.Select((convo) => Task.Run(
+                        async () =>
+                        {
+                            RunOnUIThread(() => this.CurrentConverstaionIndex++);
 
-                    //        RunOnUIThread(() => this.NumberOfMessages += messages.Count);
-                    //        RunOnUIThread(() => this.CurrentMessageIndex++);
+                            var messages = await convo.GetMessageReader().ReadBatchAsync(int.MaxValue);
 
-                    //        var conversation = (Conversation)convo;
-                    //        conversation.Messages = messages.Distinct(new Message()).Select(msg => (Message)msg);
+                            RunOnUIThread(() => this.NumberOfMessages += messages.Count);
+                            RunOnUIThread(() => this.CurrentMessageIndex++);
 
-                    //        return conversation;
-                    //    }, cancellationToken)));
+                            var conversation = (Conversation)convo;
+                            conversation.Messages = messages.Distinct(new Message()).Select(msg => (Message)msg);
 
-                    //await WriteBackup(conversations, cancellationToken);
+                            return conversation;
+                        }, cancellationToken)));
+
+                    await WriteBackup(conversations, cancellationToken);
+                }
+                catch(FileLoadException ex)
+                {
+                    if (System.Diagnostics.Debugger.IsAttached)
+                    {
+                        System.Diagnostics.Debugger.Break();
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -214,37 +235,58 @@ namespace WIMEX.ViewModel
 
         private async Task WriteBackup(IEnumerable<Conversation> conversations, CancellationToken cancellationToken)
         {
-            var backupFolderName = $"backup-{DateTime.Now:yyyyMMddHHmmssfff}";
-            var backupFolder = await ExportFolder.CreateFolderAsync(backupFolderName);
-            var attachmentFolder = await backupFolder.CreateFolderAsync("attachments");
+
+            var folderPicker = new Windows.Storage.Pickers.FolderPicker();
+            ExportFolder = await folderPicker.PickSingleFolderAsync();
+
+            //ExportFolder = Windows.Storage.ApplicationData.Current.LocalFolder;
+
+            var exportFolderName = $"backup-{DateTime.Now:yyyyMMddHHmmssfff}";
+            var exportFolder = await ExportFolder.CreateFolderAsync(exportFolderName);
+            var attachmentFolder = await exportFolder.CreateFolderAsync("attachments");
 
             await FileIO.WriteTextAsync(
-                await backupFolder.CreateFileAsync($"conversations.json"),
-                await Task.Run(() => JsonConvert.SerializeObject(conversations), cancellationToken));
+                await exportFolder.CreateFileAsync($"conversations.csv"),
+                await Task.Run(() =>
+                    ServiceStack.Text.CsvSerializer.SerializeToCsv(conversations), cancellationToken));
+            
+            await FileIO.WriteTextAsync(
+                await exportFolder.CreateFileAsync($"messages.csv"),
+                await Task.Run(() =>
+                    ServiceStack.Text.CsvSerializer.SerializeToCsv(conversations.SelectMany(convo => convo.FlattenedMessages)), cancellationToken));
 
-            await Task.WhenAll(conversations
-                .Where(conversation => conversation.Attachments.Any())
-                .SelectMany(conversation => conversation.Attachments)
-                .Select(attachment => Task.Run(async () =>
-            {
-                var attachmentFile = await attachmentFolder.CreateFileAsync($"{attachment.DataGUID}.{attachment.GuessedExtension}");
 
-                using (var fileStream = await attachmentFile.OpenStreamForWriteAsync())
-                {
-                    await Attachment.WriteDataToStream(attachment, fileStream);
-                }
-            })));
+            await FileIO.WriteTextAsync(
+                await exportFolder.CreateFileAsync($"attachments.csv"),
+                await Task.Run(() =>
+                    ServiceStack.Text.CsvSerializer.SerializeToCsv(conversations.SelectMany(conversation => conversation.Attachments)), cancellationToken));
 
-            await Task.Run(() =>
-            {
-                ZipFile.CreateFromDirectory(
-                    backupFolder.Path,
-                    $"{backupFolder.Path}.zip",
-                    CompressionLevel.Optimal,
-                    false);
 
-                Directory.Delete(backupFolder.Path, true);
-            });
+            
+
+            //await Task.WhenAll(conversations
+            //    .Where(conversation => conversation.Attachments.Any())
+            //    .SelectMany(conversation => conversation.Attachments)
+            //    .Select(attachment => Task.Run(async () =>
+            //{
+            //    var attachmentFile = await attachmentFolder.CreateFileAsync($"{attachment.DataGUID}.{attachment.GuessedExtension}");
+
+            //    using (var fileStream = await attachmentFile.OpenStreamForWriteAsync())
+            //    {
+            //        await Attachment.WriteDataToStream(attachment, fileStream);
+            //    }
+            //})));
+
+            //await Task.Run(() =>
+            //{
+            //    ZipFile.CreateFromDirectory(
+            //        backupFolder.Path,
+            //        $"{backupFolder.Path}.zip",
+            //        CompressionLevel.Optimal,
+            //        false);
+
+            //    Directory.Delete(backupFolder.Path, true);
+            //});
         }
 
         private async static void RunOnUIThread(Action action)
