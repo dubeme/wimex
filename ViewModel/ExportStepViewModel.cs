@@ -1,18 +1,19 @@
 ﻿using GalaSoft.MvvmLight;
+using WIMEX.Model;
 
 namespace WIMEX.ViewModel
 {
     public class ExportStepViewModel : ViewModelBase
     {
-        private bool _InProgress;
+        private ExportStepState _State;
 
-        public bool InProgress
+        public ExportStepState State
         {
-            get { return _InProgress; }
+            get { return _State; }
             set
             {
-                _InProgress = value;
-                RaisePropertyChanged(nameof(InProgress));
+                _State = value;
+                RaisePropertyChanged(nameof(State));
             }
         }
 

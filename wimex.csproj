@@ -95,6 +95,8 @@
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Converter\ExportStepInProgressBooleanConverter.cs" />
+    <Compile Include="Converter\ExportStepStateVisibilityConverter.cs" />
     <Compile Include="Converter\NegateBooleanConverter.cs" />
     <Compile Include="Converter\NegateBooleanToVisibilityConverter.cs" />
     <Compile Include="Converter\BooleanToVisibilityConverter.cs" />
@@ -102,11 +104,13 @@
     <Compile Include="Model\Attachment.cs" />
     <Compile Include="Model\Conversation.cs" />
     <Compile Include="Model\ConversationThreadingInfo.cs" />
+    <Compile Include="Model\ExportStepState.cs" />
     <Compile Include="Model\FlattenedMessage.cs" />
     <Compile Include="Model\Message.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ViewModel\AppHubViewModel.cs" />
     <Compile Include="ViewModel\ConversationViewModel.cs" />
+    <Compile Include="Model\ExportStep.cs" />
     <Compile Include="ViewModel\ExportStepViewModel.cs" />
     <Compile Include="View\AppHub.xaml.cs">
       <DependentUpon>AppHub.xaml</DependentUpon>

@@ -11,6 +11,8 @@
     mc:Ignorable="d">
 
     <Page.Resources>
+        <Converter:ExportStepInProgressBooleanConverter x:Key="ExportStepInProgressBooleanConverter" />
+        <Converter:ExportStepStateVisibilityConverter x:Key="ExportStepStateVisibilityConverter" />
         <Converter:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <Converter:NegateBooleanConverter x:Key="NegateBooleanConverter" />
         <Converter:NegateBooleanToVisibilityConverter x:Key="NegateBooleanToVisibilityConverter" />
@@ -27,8 +29,8 @@
                 VerticalAlignment="Stretch"
                 Command="{Binding StartExportingCommand}"
                 Icon="Download"
-                Label="Export Messages"
                 IsEnabled="{Binding ExportLocationSet}"
+                Label="Export Messages"
                 Visibility="{Binding ExportInProgress, Converter={StaticResource NegateBooleanToVisibilityConverter}}"
                 d:LayoutOverrides="Height" />
 
@@ -59,12 +61,12 @@
 
             <Button
                 Margin="8"
-                Content="Pick Export Location"
                 Command="{Binding PickExportFolderCommand}"
+                Content="Pick Export Location"
                 IsEnabled="{Binding ExportInProgress, Converter={StaticResource NegateBooleanConverter}}" />
         </StackPanel>
 
-        <ListView Grid.Row="1" ItemsSource="{Binding ExportSteps}" >
+        <ListView Grid.Row="1" ItemsSource="{Binding ExportSteps}">
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <StackPanel
@@ -72,29 +74,27 @@
                         Padding="4"
                         Orientation="Horizontal">
                         <Grid>
-                            <fa:FontAwesome
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Bottom"
-                                Icon="Check"
-                                Visibility="{Binding InProgress, Converter={StaticResource NegateBooleanToVisibilityConverter}}" />
-
                             <ProgressRing
                                 Grid.Row="0"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
-                                IsActive="{Binding InProgress}" />
+                                IsActive="{Binding State, Converter={StaticResource ExportStepInProgressBooleanConverter}}" />
+
+                            <fa:FontAwesome
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Icon="Check"
+                                Visibility="{Binding State, ConverterParameter=Done, Converter={StaticResource ExportStepStateVisibilityConverter}}" />
                         </Grid>
 
                         <TextBlock
                             Margin="8,0,0,0"
                             VerticalAlignment="Bottom"
                             Text="{Binding Label}"
-                            TextWrapping="WrapWholeWords"/>
+                            TextWrapping="WrapWholeWords" />
                     </StackPanel>
                 </DataTemplate>
             </ListView.ItemTemplate>
-
         </ListView>
     </Grid>
-
 </Page>

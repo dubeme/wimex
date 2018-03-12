@@ -17,6 +17,8 @@ namespace WIMEX.ViewModel
 {
     public class AppHubViewModel : ViewModelBase
     {
+        private Dictionary<ExportStep, ExportStepViewModel> _ExportStepsDictionary;
+
         private int _CurrentConverstaionIndex;
 
         public int CurrentConverstaionIndex
@@ -137,6 +139,7 @@ namespace WIMEX.ViewModel
 
             StartExportingCommand = new RelayCommand(async () =>
             {
+                ResetExportSteps();
                 await GetMessages(tokenSource.Token);
             });
 
@@ -144,6 +147,8 @@ namespace WIMEX.ViewModel
             {
                 tokenSource.Cancel();
             });
+
+            ResetExportSteps();
         }
 
         public async Task GetMessages(CancellationToken cancellationToken)
@@ -162,6 +167,8 @@ namespace WIMEX.ViewModel
                     this.CurrentMessageIndex = 0;
                     this.NumberOfConversations = chatConversations.Count;
 
+                    UpdateExportStepState(ExportStep.DiscoverConversations, ExportStepState.InProgess);
+
                     var conversations = await Task.WhenAll(chatConversations.Select((convo) => Task.Run(
                         async () =>
                         {
@@ -177,6 +184,8 @@ namespace WIMEX.ViewModel
 
                             return conversation;
                         }, cancellationToken)));
+
+                    UpdateExportStepState(ExportStep.DiscoverConversations, ExportStepState.Done);
 
                     await WriteBackup(conversations, cancellationToken);
                 }
@@ -211,33 +220,102 @@ namespace WIMEX.ViewModel
             var exportFolder = await ExportFolder.CreateFolderAsync(exportFolderName);
             var attachmentFolder = await exportFolder.CreateFolderAsync("attachments");
 
+            UpdateExportStepState(ExportStep.StoreConversations, ExportStepState.InProgess);
             await FileIO.WriteTextAsync(
                 await exportFolder.CreateFileAsync($"conversations.csv"),
                 await Task.Run(() =>
                     ServiceStack.Text.CsvSerializer.SerializeToCsv(conversations), cancellationToken));
+            UpdateExportStepState(ExportStep.StoreConversations, ExportStepState.Done);
 
+            UpdateExportStepState(ExportStep.StoreMessages, ExportStepState.InProgess);
             await FileIO.WriteTextAsync(
                 await exportFolder.CreateFileAsync($"messages.csv"),
                 await Task.Run(() =>
                     ServiceStack.Text.CsvSerializer.SerializeToCsv(conversations.SelectMany(convo => convo.FlattenedMessages)), cancellationToken));
+            UpdateExportStepState(ExportStep.StoreMessages, ExportStepState.Done);
 
+            UpdateExportStepState(ExportStep.StoreAttachementsMetadata, ExportStepState.InProgess);
             await FileIO.WriteTextAsync(
                 await exportFolder.CreateFileAsync($"attachments.csv"),
                 await Task.Run(() =>
                     ServiceStack.Text.CsvSerializer.SerializeToCsv(conversations.SelectMany(conversation => conversation.Attachments)), cancellationToken));
+            UpdateExportStepState(ExportStep.StoreAttachementsMetadata, ExportStepState.Done);
 
+            UpdateExportStepState(ExportStep.StroeAttachmentFiles, ExportStepState.InProgess);
             await Task.WhenAll(conversations
                 .Where(conversation => conversation.Attachments.Any())
                 .SelectMany(conversation => conversation.Attachments)
                 .Select(attachment => Task.Run(async () =>
-            {
-                var attachmentFile = await attachmentFolder.CreateFileAsync($"{attachment.Id}.{attachment.GuessedExtension}");
-
-                using (var fileStream = await attachmentFile.OpenStreamForWriteAsync())
                 {
-                    await Attachment.WriteDataToStream(attachment, fileStream);
+                    var attachmentFile = await attachmentFolder.CreateFileAsync($"{attachment.Id}.{attachment.GuessedExtension}");
+
+                    using (var fileStream = await attachmentFile.OpenStreamForWriteAsync())
+                    {
+                        await Attachment.WriteDataToStream(attachment, fileStream);
+                    }
+                })));
+            UpdateExportStepState(ExportStep.StroeAttachmentFiles, ExportStepState.Done);
+        }
+
+        private void ResetExportSteps()
+        {
+            _ExportStepsDictionary = new Dictionary<ExportStep, ExportStepViewModel>
+            {
+                {
+                    ExportStep.DiscoverConversations,
+                    new ExportStepViewModel
+                    {
+                        State = ExportStepState.Idle,
+                        Label = "Discover conversations"
+                    }
+                },
+                {
+                    ExportStep.StoreConversations,
+                    new ExportStepViewModel
+                    {
+                        State = ExportStepState.Idle,
+                        Label = "Export conversations (conversation structure)"
+                    }
+                },
+                {
+                    ExportStep.StoreMessages,
+                    new ExportStepViewModel
+                    {
+                        State = ExportStepState.Idle,
+                        Label = "Export messages (within conversations)"
+                    }
+                },
+                {
+                    ExportStep.StoreAttachementsMetadata,
+                    new ExportStepViewModel
+                    {
+                        State = ExportStepState.Idle,
+                        Label = "Export Attachment Metadata"
+                    }
+                },
+                {
+                    ExportStep.StroeAttachmentFiles,
+                    new ExportStepViewModel
+                    {
+                        State = ExportStepState.Idle,
+                        Label = "Export Attachments (individual files/content)"
+                    }
                 }
-            })));
+            };
+
+            ExportSteps = new ObservableCollection<ExportStepViewModel>(new ExportStepViewModel[]
+            {
+                _ExportStepsDictionary[ExportStep.DiscoverConversations],
+                _ExportStepsDictionary[ExportStep.StoreConversations],
+                _ExportStepsDictionary[ExportStep.StoreMessages],
+                _ExportStepsDictionary[ExportStep.StoreAttachementsMetadata],
+                _ExportStepsDictionary[ExportStep.StroeAttachmentFiles],
+            });
+        }
+
+        private void UpdateExportStepState(ExportStep step, ExportStepState state)
+        {
+            _ExportStepsDictionary[step].State = state;
         }
 
         private async static void RunOnUIThread(Action action)
