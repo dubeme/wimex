@@ -231,31 +231,20 @@ namespace WIMEX.ViewModel
                     ServiceStack.Text.CsvSerializer.SerializeToCsv(conversations.SelectMany(conversation => conversation.Attachments)), cancellationToken));
 
 
-            
 
-            //await Task.WhenAll(conversations
-            //    .Where(conversation => conversation.Attachments.Any())
-            //    .SelectMany(conversation => conversation.Attachments)
-            //    .Select(attachment => Task.Run(async () =>
-            //{
-            //    var attachmentFile = await attachmentFolder.CreateFileAsync($"{attachment.DataGUID}.{attachment.GuessedExtension}");
 
-            //    using (var fileStream = await attachmentFile.OpenStreamForWriteAsync())
-            //    {
-            //        await Attachment.WriteDataToStream(attachment, fileStream);
-            //    }
-            //})));
+            await Task.WhenAll(conversations
+                .Where(conversation => conversation.Attachments.Any())
+                .SelectMany(conversation => conversation.Attachments)
+                .Select(attachment => Task.Run(async () =>
+            {
+                var attachmentFile = await attachmentFolder.CreateFileAsync($"{attachment.Id}.{attachment.GuessedExtension}");
 
-            //await Task.Run(() =>
-            //{
-            //    ZipFile.CreateFromDirectory(
-            //        backupFolder.Path,
-            //        $"{backupFolder.Path}.zip",
-            //        CompressionLevel.Optimal,
-            //        false);
-
-            //    Directory.Delete(backupFolder.Path, true);
-            //});
+                using (var fileStream = await attachmentFile.OpenStreamForWriteAsync())
+                {
+                    await Attachment.WriteDataToStream(attachment, fileStream);
+                }
+            })));
         }
 
         private async static void RunOnUIThread(Action action)
