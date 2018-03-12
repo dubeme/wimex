@@ -1,18 +1,15 @@
 ﻿using GalaSoft.MvvmLight;
 using GalaSoft.MvvmLight.Command;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using WIMEX.Model;
 using Windows.ApplicationModel.Chat;
-using Windows.ApplicationModel.Contacts;
 using Windows.ApplicationModel.Core;
 using Windows.Storage;
 
@@ -80,8 +77,8 @@ namespace WIMEX.ViewModel
             }
         }
 
-
         private bool _ExportLocationSet;
+
         public bool ExportLocationSet
         {
             get { return _ExportLocationSet; }
@@ -183,7 +180,7 @@ namespace WIMEX.ViewModel
 
                     await WriteBackup(conversations, cancellationToken);
                 }
-                catch(FileLoadException ex)
+                catch (FileLoadException ex)
                 {
                     if (System.Diagnostics.Debugger.IsAttached)
                     {
@@ -218,20 +215,16 @@ namespace WIMEX.ViewModel
                 await exportFolder.CreateFileAsync($"conversations.csv"),
                 await Task.Run(() =>
                     ServiceStack.Text.CsvSerializer.SerializeToCsv(conversations), cancellationToken));
-            
+
             await FileIO.WriteTextAsync(
                 await exportFolder.CreateFileAsync($"messages.csv"),
                 await Task.Run(() =>
                     ServiceStack.Text.CsvSerializer.SerializeToCsv(conversations.SelectMany(convo => convo.FlattenedMessages)), cancellationToken));
 
-
             await FileIO.WriteTextAsync(
                 await exportFolder.CreateFileAsync($"attachments.csv"),
                 await Task.Run(() =>
                     ServiceStack.Text.CsvSerializer.SerializeToCsv(conversations.SelectMany(conversation => conversation.Attachments)), cancellationToken));
-
-
-
 
             await Task.WhenAll(conversations
                 .Where(conversation => conversation.Attachments.Any())
