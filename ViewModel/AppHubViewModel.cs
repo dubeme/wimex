@@ -80,6 +80,18 @@ namespace WIMEX.ViewModel
             }
         }
 
+
+        private bool _ExportLocationSet;
+        public bool ExportLocationSet
+        {
+            get { return _ExportLocationSet; }
+            set
+            {
+                _ExportLocationSet = value;
+                RaisePropertyChanged(nameof(ExportLocationSet));
+            }
+        }
+
         public StorageFolder ExportFolder { get; set; }
 
         private ObservableCollection<ConversationViewModel> _Conversations;
@@ -123,6 +135,7 @@ namespace WIMEX.ViewModel
             {
                 var folderPicker = new Windows.Storage.Pickers.FolderPicker();
                 ExportFolder = await folderPicker.PickSingleFolderAsync();
+                ExportLocationSet = ExportFolder?.Name?.Length > 0;
             });
 
             StartExportingCommand = new RelayCommand(async () =>
@@ -235,12 +248,6 @@ namespace WIMEX.ViewModel
 
         private async Task WriteBackup(IEnumerable<Conversation> conversations, CancellationToken cancellationToken)
         {
-
-            var folderPicker = new Windows.Storage.Pickers.FolderPicker();
-            ExportFolder = await folderPicker.PickSingleFolderAsync();
-
-            //ExportFolder = Windows.Storage.ApplicationData.Current.LocalFolder;
-
             var exportFolderName = $"backup-{DateTime.Now:yyyyMMddHHmmssfff}";
             var exportFolder = await ExportFolder.CreateFolderAsync(exportFolderName);
             var attachmentFolder = await exportFolder.CreateFolderAsync("attachments");

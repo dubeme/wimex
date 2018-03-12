@@ -28,6 +28,7 @@
                 Command="{Binding StartExportingCommand}"
                 Icon="Download"
                 Label="Export Messages"
+                IsEnabled="{Binding ExportLocationSet}"
                 Visibility="{Binding ExportInProgress, Converter={StaticResource NegateBooleanToVisibilityConverter}}"
                 d:LayoutOverrides="Height" />
 
