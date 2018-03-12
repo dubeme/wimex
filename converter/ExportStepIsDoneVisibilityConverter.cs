@@ -5,14 +5,11 @@ using Windows.UI.Xaml.Data;
 
 namespace WIMEX.Converter
 {
-    public class ExportStepStateVisibilityConverter : IValueConverter
+    public class ExportStepIsDoneVisibilityConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, string language)
         {
-            Enum.TryParse(value.ToString(), out ExportStepState actualState);
-            Enum.TryParse((string)parameter, out ExportStepState expectedState);
-
-            return actualState == expectedState ? Visibility.Visible : Visibility.Collapsed;
+            return value.Equals(ExportStepState.Done) ? Visibility.Visible : Visibility.Collapsed;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, string language)

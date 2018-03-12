@@ -96,7 +96,7 @@
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
     <Compile Include="Converter\ExportStepInProgressBooleanConverter.cs" />
-    <Compile Include="Converter\ExportStepStateVisibilityConverter.cs" />
+    <Compile Include="Converter\ExportStepIsDoneVisibilityConverter.cs" />
     <Compile Include="Converter\NegateBooleanConverter.cs" />
     <Compile Include="Converter\NegateBooleanToVisibilityConverter.cs" />
     <Compile Include="Converter\BooleanToVisibilityConverter.cs" />

@@ -12,7 +12,7 @@
 
     <Page.Resources>
         <Converter:ExportStepInProgressBooleanConverter x:Key="ExportStepInProgressBooleanConverter" />
-        <Converter:ExportStepStateVisibilityConverter x:Key="ExportStepStateVisibilityConverter" />
+        <Converter:ExportStepIsDoneVisibilityConverter x:Key="ExportStepIsDoneVisibilityConverter" />
         <Converter:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <Converter:NegateBooleanConverter x:Key="NegateBooleanConverter" />
         <Converter:NegateBooleanToVisibilityConverter x:Key="NegateBooleanToVisibilityConverter" />
@@ -84,7 +84,7 @@
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
                                 Icon="Check"
-                                Visibility="{Binding State, ConverterParameter=Done, Converter={StaticResource ExportStepStateVisibilityConverter}}" />
+                                Visibility="{Binding State, Converter={StaticResource ExportStepIsDoneVisibilityConverter}}" />
                         </Grid>
 
                         <TextBlock
