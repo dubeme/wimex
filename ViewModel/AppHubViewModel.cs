@@ -147,8 +147,6 @@ namespace WIMEX.ViewModel
             {
                 tokenSource.Cancel();
             });
-
-            ResetExportSteps();
         }
 
         public async Task GetMessages(CancellationToken cancellationToken)
