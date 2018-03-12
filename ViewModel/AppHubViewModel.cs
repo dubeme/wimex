@@ -147,6 +147,8 @@ namespace WIMEX.ViewModel
             {
                 tokenSource.Cancel();
             });
+
+            SetupExportSteps();
         }
 
         public async Task GetMessages(CancellationToken cancellationToken)
@@ -255,7 +257,7 @@ namespace WIMEX.ViewModel
             UpdateExportStepState(ExportStep.StroeAttachmentFiles, ExportStepState.Done);
         }
 
-        private void ResetExportSteps()
+        private void SetupExportSteps()
         {
             _ExportStepsDictionary = new Dictionary<ExportStep, ExportStepViewModel>
             {
@@ -309,6 +311,15 @@ namespace WIMEX.ViewModel
                 _ExportStepsDictionary[ExportStep.StoreAttachementsMetadata],
                 _ExportStepsDictionary[ExportStep.StroeAttachmentFiles],
             });
+        }
+
+        private void ResetExportSteps()
+        {
+            _ExportStepsDictionary[ExportStep.DiscoverConversations].State = ExportStepState.Idle;
+            _ExportStepsDictionary[ExportStep.StoreConversations].State = ExportStepState.Idle;
+            _ExportStepsDictionary[ExportStep.StoreMessages].State = ExportStepState.Idle;
+            _ExportStepsDictionary[ExportStep.StoreAttachementsMetadata].State = ExportStepState.Idle;
+            _ExportStepsDictionary[ExportStep.StroeAttachmentFiles].State = ExportStepState.Idle;
         }
 
         private void UpdateExportStepState(ExportStep step, ExportStepState state)
