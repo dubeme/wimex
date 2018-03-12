@@ -165,15 +165,6 @@ namespace WIMEX.ViewModel
                     this.CurrentMessageIndex = 0;
                     this.NumberOfConversations = chatConversations.Count;
 
-                    var contactStore = await ContactManager.RequestStoreAsync();
-                    var clBatch = (await contactStore.FindContactListsAsync()).ToList();
-                    var cBatch = (await contactStore.FindContactsAsync()).ToList();
-                    var cJSON = await Task.Run(() => JsonConvert.SerializeObject(cBatch), cancellationToken);
-
-                    //Conversations = await ChatConversationsToConversationViewModelsAsync(chatConversations, cancellationToken);
-
-                    // FontAwesome.UWP.FontAwesomeIcon.Check
-
                     var conversations = await Task.WhenAll(chatConversations.Select((convo) => Task.Run(
                         async () =>
                         {
@@ -215,35 +206,6 @@ namespace WIMEX.ViewModel
                     this.ExportInProgress = false;
                 }
             }
-        }
-
-        private static async Task<ObservableCollection<ConversationViewModel>> ChatConversationsToConversationViewModelsAsync(IReadOnlyList<ChatConversation> chatConversations, CancellationToken cancellationToken)
-        {
-            var contactStore = await ContactManager.RequestStoreAsync();
-
-            return new ObservableCollection<ConversationViewModel>(await Task.WhenAll(
-                chatConversations
-                .Select(convo => Task.Run(async () =>
-                {
-                    var allParticipants = await Task.WhenAll(convo.Participants.Select(participant => Task.Run(async () =>
-                    {
-                        try
-                        {
-                            return (await contactStore.FindContactsAsync(participant)).First().FullName;
-                        }
-                        catch (Exception)
-                        {
-                        }
-
-                        return participant;
-                    }, cancellationToken)));
-
-                    return new ConversationViewModel
-                    {
-                        Conversation = convo,
-                        AllParticipants = string.Join(", ", allParticipants)
-                    };
-                }))));
         }
 
         private async Task WriteBackup(IEnumerable<Conversation> conversations, CancellationToken cancellationToken)
